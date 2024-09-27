@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/ArtemZ007/me-test/config"
+	"github.com/ArtemZ007/em-test/config"
 	_ "github.com/lib/pq"
 )
 

@@ -1,14 +1,14 @@
 package main
 
 import (
+	"em-test/api/routes"
+	"em-test/internal/db"
 	"log"
 	"net/http"
 	"os"
 
-	"github.com/ArtemZ007/me-test/api/routes"
-	"github.com/ArtemZ007/me-test/config"
-	"github.com/ArtemZ007/me-test/internal/db"
-	"github.com/ArtemZ007/me-test/utils"
+	"github.com/ArtemZ007/em-test/config"
+	"github.com/ArtemZ007/em-test/utils"
 
 	"github.com/gorilla/mux"
 )

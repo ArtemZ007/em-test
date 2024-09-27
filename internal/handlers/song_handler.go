@@ -7,9 +7,6 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/ArtemZ007/me-test/internal/db"
-	"github.com/ArtemZ007/me-test/internal/models"
-
 	"github.com/gorilla/mux"
 )
 
