@@ -1,18 +1,20 @@
 package main
 
 import (
-	"em-test/api/routes"
-	"em-test/internal/db"
+	"em-test/routes"
 	"log"
 	"os"
 
-	_ "github.com/ArtemZ007/em-test/docs" // путь к сгенерированной документации
+	"em-test/internal/db"
+	"em-test/internal/handlers"
+
+	// путь к сгенерированной документации
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files" // библиотека для Swagger UI
 	ginSwagger "github.com/swaggo/gin-swagger"
 
-	"github.com/ArtemZ007/em-test/config"
-	"github.com/ArtemZ007/em-test/utils"
+	"em-test/config"
+	"em-test/utils"
 )
 
 // @title Music Library API
@@ -46,10 +48,13 @@ func main() {
 	utils.InitLogger()
 
 	// Инициализируем базу данных
-	db.InitDB(cfg)
+	dbInstance := db.InitDB(cfg)
+
+	// Создаем SongHandler
+	songHandler := handlers.NewSongHandler(dbInstance)
 
 	// Регистрируем маршруты
-	routes.RegisterRoutes(r)
+	routes.RegisterRoutes(r, songHandler) // Ensure routes.RegisterRoutes accepts *gin.Engine
 
 	// Устанавливаем порт из переменной окружения или по умолчанию 8080
 	port := os.Getenv("PORT")

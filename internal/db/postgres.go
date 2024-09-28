@@ -2,12 +2,12 @@ package db
 
 import (
 	"database/sql"
+	"em-test/config"
 	"fmt"
 	"log"
 	"time"
 
-	"github.com/ArtemZ007/em-test/config"
-	_ "github.com/lib/pq"
+	_ "github.com/lib/pq" // Заменяем импорт на анонимный, если драйвер используется только для инициализации
 )
 
 // Database структура для работы с БД

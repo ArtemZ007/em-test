@@ -7,8 +7,9 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/ArtemZ007/em-test/internal/db"
-	"github.com/ArtemZ007/em-test/models"
+	"em-test/internal/db"
+	"em-test/internal/models"
+
 	"github.com/gorilla/mux"
 )
 
@@ -35,6 +36,11 @@ func NewSongHandler(db *db.Database) *SongHandler {
 // @Failure 500 {string} string "Ошибка на сервере"
 // @Router /songs [get]
 func (h *SongHandler) GetSongs(w http.ResponseWriter, r *http.Request) {
+	const (
+		contentType     = "Content-Type"
+		applicationJSON = "application/json"
+	)
+
 	ctx := r.Context()
 	var songs []models.Song
 	filters := r.URL.Query()
@@ -48,7 +54,7 @@ func (h *SongHandler) GetSongs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	group := filters.Get("group")
-	query := h.db.WithContext(ctx).Limit(limit).Offset(offset)
+	query := h.db.DB.WithContext(ctx).Limit(limit).Offset(offset)
 	if group != "" {
 		query = query.Where("group = ?", group)
 	}
@@ -58,7 +64,7 @@ func (h *SongHandler) GetSongs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set(contentType, applicationJSON)
 	json.NewEncoder(w).Encode(songs)
 }
 
@@ -90,7 +96,11 @@ func (h *SongHandler) AddSong(w http.ResponseWriter, r *http.Request) {
 	}
 	defer resp.Body.Close()
 
-	var songDetail models.SongDetail
+	var songDetail struct {
+		ReleaseDate string `json:"release_date"`
+		Text        string `json:"text"`
+		Link        string `json:"link"`
+	}
 	if err := json.NewDecoder(resp.Body).Decode(&songDetail); err != nil {
 		http.Error(w, "Не удалось декодировать информацию о песне", http.StatusInternalServerError)
 		return
@@ -100,7 +110,7 @@ func (h *SongHandler) AddSong(w http.ResponseWriter, r *http.Request) {
 	song.Text = songDetail.Text
 	song.Link = songDetail.Link
 
-	if err := h.db.Create(&song).Error; err != nil {
+	if err := h.db.DB.Create(&song).Error; err != nil {
 		http.Error(w, "Не удалось сохранить песню", http.StatusInternalServerError)
 		return
 	}
@@ -124,7 +134,7 @@ func (h *SongHandler) GetSongHandler(w http.ResponseWriter, r *http.Request) {
 	id := vars["id"]
 
 	var song models.Song
-	if err := h.db.First(&song, id).Error; err != nil {
+	if err := h.db.DB.First(&song, id).Error; err != nil {
 		http.Error(w, "Песня не найдена", http.StatusNotFound)
 		return
 	}
@@ -155,7 +165,7 @@ func (h *SongHandler) UpdateSongHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	if err := h.db.Model(&models.Song{}).Where("id = ?", id).Updates(song).Error; err != nil {
+	if err := h.db.DB.Model(&models.Song{}).Where("id = ?", id).Updates(song).Error; err != nil {
 		http.Error(w, "Ошибка при обновлении песни", http.StatusInternalServerError)
 		return
 	}
@@ -176,7 +186,13 @@ func (h *SongHandler) DeleteSongHandler(w http.ResponseWriter, r *http.Request) 
 	vars := mux.Vars(r)
 	id := vars["id"]
 
-	if err := h.db.Delete(&models.Song{}, id).Error; err != nil {
+	var song models.Song
+	if err := h.db.DB.First(&song, id).Error; err != nil {
+		http.Error(w, "Песня не найдена", http.StatusNotFound)
+		return
+	}
+
+	if err := h.db.DB.Delete(&song).Error; err != nil {
 		http.Error(w, "Ошибка при удалении песни", http.StatusInternalServerError)
 		return
 	}
