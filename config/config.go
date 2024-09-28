@@ -25,24 +25,30 @@ func LoadConfig() *Config {
 		log.Fatal("Ошибка при загрузке файла .env") // Логируем ошибку, если файл .env не найден или не может быть загружен
 	}
 
-	// Создаем структуру Config и заполняем её значениями из переменных окружения
-	port, err := strconv.Atoi(os.Getenv("DB_PORT"))
+	// Чтение порта базы данных из переменной окружения
+	portStr := os.Getenv("POSTGRES_PORT") // Считываем переменную окружения для порта как строку
+	port, err := strconv.Atoi(portStr)    // Конвертируем строку в число
 	if err != nil {
-		log.Fatal("Некорректное значение порта в файле .env") // Логируем ошибку, если порт не является числом
+		log.Fatalf("Некорректное значение порта в файле .env: %v", err) // Логируем ошибку, если порт не является числом
 	}
 
+	// Создаем структуру Config и заполняем её значениями из переменных окружения
 	config := Config{
-		DBUser:     os.Getenv("DB_USER"),     // Получаем значение переменной окружения DB_USER
-		DBPassword: os.Getenv("DB_PASSWORD"), // Получаем значение переменной окружения DB_PASSWORD
-		DBHost:     os.Getenv("DB_HOST"),     // Получаем значение переменной окружения DB_HOST
-		DBPort:     port,                     // Устанавливаем значение порта
-		DBName:     os.Getenv("DB_NAME"),     // Получаем значение переменной окружения DB_NAME
+		DBUser:     os.Getenv("POSTGRES_USER"),     // Получаем значение переменной окружения POSTGRES_USER
+		DBPassword: os.Getenv("POSTGRES_PASSWORD"), // Получаем значение переменной окружения POSTGRES_PASSWORD
+		DBHost:     os.Getenv("POSTGRES_HOST"),     // Получаем значение переменной окружения POSTGRES_HOST
+		DBPort:     port,                           // Устанавливаем значение порта, уже преобразованное в int
+		DBName:     os.Getenv("POSTGRES_DB"),       // Получаем значение переменной окружения POSTGRES_DB
 	}
 
 	// Проверяем, что все необходимые переменные окружения заданы
 	if config.DBUser == "" || config.DBPassword == "" || config.DBHost == "" || config.DBName == "" {
 		log.Fatal("Одно или несколько обязательных полей конфигурации не заданы в файле .env") // Логируем ошибку, если какое-либо поле не задано
 	}
+
+	// Логируем загруженные значения для отладки (можно убрать на продакшене)
+	log.Printf("Конфигурация загружена: хост=%s порт=%d пользователь=%s база данных=%s",
+		config.DBHost, config.DBPort, config.DBUser, config.DBName)
 
 	// Возвращаем указатель на структуру Config
 	return &config

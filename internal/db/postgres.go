@@ -18,42 +18,48 @@ type Database struct {
 
 // InitDB инициализирует подключение к базе данных с использованием конфигурации
 func InitDB(cfg *config.Config) (*Database, error) {
-	// Преобразуем порт в строку
 	portStr := strconv.Itoa(cfg.DBPort)
 
-	// Формируем строку подключения (DSN) с использованием параметров из конфигурации
+	// Формируем строку подключения (DSN)
 	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
 		cfg.DBHost, portStr, cfg.DBUser, cfg.DBPassword, cfg.DBName)
 
-	// Открываем соединение с базой данных с использованием GORM и драйвера PostgreSQL
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	var db *gorm.DB
+	var err error
+
+	// Пытаемся подключиться 5 раз с интервалом в 5 секунд
+	for i := 0; i < 5; i++ {
+		db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
+		if err == nil {
+			// Если подключение успешно, выходим из цикла
+			break
+		}
+		// Если подключение не удалось, ждем 5 секунд и повторяем попытку
+		log.Printf("Не удалось подключиться к базе данных. Попытка %d из 5. Ошибка: %v\n", i+1, err)
+		time.Sleep(5 * time.Second)
+	}
+
 	if err != nil {
-		// Если произошла ошибка при подключении, возвращаем её
+		// Если все попытки не удались, возвращаем ошибку
 		return nil, fmt.Errorf("ошибка при подключении к базе данных: %v", err)
 	}
 
-	// Получаем объект sql.DB из GORM для настройки соединения
+	// Получаем объект sql.DB из GORM
 	sqlDB, err := db.DB()
 	if err != nil {
-		// Если произошла ошибка при получении sql.DB, возвращаем её
 		return nil, fmt.Errorf("ошибка получения SQL DB: %v", err)
 	}
 
-	// Устанавливаем максимальное время жизни соединения
+	// Настройка соединения
 	sqlDB.SetConnMaxLifetime(5 * time.Minute)
-	// Устанавливаем максимальное количество открытых соединений
 	sqlDB.SetMaxOpenConns(20)
-	// Устанавливаем максимальное количество соединений в пуле ожидания
 	sqlDB.SetMaxIdleConns(10)
 
 	// Проверяем связь с базой данных
 	if err := sqlDB.Ping(); err != nil {
-		// Если произошла ошибка при проверке связи, возвращаем её
 		return nil, fmt.Errorf("ошибка при проверке связи с базой данных: %v", err)
 	}
 
-	// Логируем успешное подключение к базе данных
 	log.Println("Подключение к базе данных успешно установлено")
-	// Возвращаем объект Database с установленным подключением
 	return &Database{DB: db}, nil
 }
