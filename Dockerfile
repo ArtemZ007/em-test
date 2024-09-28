@@ -18,4 +18,4 @@ RUN go build -o main .
 EXPOSE 8080
 
 # Команда для запуска приложения
-CMD ["./cmd/main"]
+CMD ["./main"]
