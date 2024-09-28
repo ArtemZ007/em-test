@@ -1,17 +1,17 @@
 package main
 
 import (
-	"em-test/config"
-	"em-test/internal/db"
-	"em-test/internal/handlers"
-	"em-test/routes"
-	"em-test/utils"
-	"log"
-	"net/http"
-	"os"
+	"em-test/config"            // Пакет для работы с конфигурацией
+	"em-test/internal/db"       // Пакет для работы с базой данных
+	"em-test/internal/handlers" // Пакет для обработки запросов
+	"em-test/routes"            // Пакет для регистрации маршрутов
+	"em-test/utils"             // Пакет для вспомогательных функций, таких как логирование
+	"log"                       // Пакет для логирования
+	"net/http"                  // Пакет для работы с HTTP сервером
+	"os"                        // Пакет для работы с операционной системой
 
-	"github.com/gorilla/mux"
-	httpSwagger "github.com/swaggo/http-swagger"
+	"github.com/gorilla/mux"                     // Пакет для маршрутизации HTTP запросов
+	httpSwagger "github.com/swaggo/http-swagger" // Пакет для интеграции Swagger UI
 )
 
 // @title Music Library API

@@ -1,14 +1,14 @@
 package routes
 
 import (
-	"em-test/internal/handlers"
+	"em-test/internal/handlers" // Импортируем пакет с обработчиками запросов
 
-	"github.com/gorilla/mux"
+	"github.com/gorilla/mux" // Импортируем пакет для маршрутизации
 )
 
 // RegisterRoutes регистрирует все маршруты для API
 func RegisterRoutes(router *mux.Router, songHandler *handlers.SongHandler) {
-	const songIDRoute = "/songs/{id}"
+	const songIDRoute = "/songs/{id}" // Константа для маршрута с ID песни
 
 	// Маршрут для получения всех песен
 	router.HandleFunc("/songs", songHandler.GetSongs).Methods("GET")
