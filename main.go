@@ -1,20 +1,17 @@
 package main
 
 import (
-	"em-test/routes"
-	"log"
-	"os"
-
+	"em-test/config"
 	"em-test/internal/db"
 	"em-test/internal/handlers"
-
-	// путь к сгенерированной документации
-	"github.com/gin-gonic/gin"
-	swaggerFiles "github.com/swaggo/files" // библиотека для Swagger UI
-	ginSwagger "github.com/swaggo/gin-swagger"
-
-	"em-test/config"
+	"em-test/routes"
 	"em-test/utils"
+	"log"
+	"net/http"
+	"os"
+
+	"github.com/gorilla/mux"
+	httpSwagger "github.com/swaggo/http-swagger"
 )
 
 // @title Music Library API
@@ -32,37 +29,39 @@ import (
 // @host localhost:8080
 // @BasePath /
 func main() {
-	// Создаем новый роутер через Gin
-	r := gin.Default()
+	// Создаем новый роутер через mux
+	router := mux.NewRouter()
 
 	// Подключаем Swagger UI по адресу /swagger/*
-	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	router.PathPrefix("/swagger/").Handler(httpSwagger.Handler(
+		httpSwagger.URL("http://localhost:8080/swagger/doc.json"), // Укажи правильный URL для Swagger документации
+	))
 
 	// Загружаем конфигурацию из файла .env
-	cfg, err := config.LoadConfig()
-	if err != nil {
-		log.Fatalf("Не удалось загрузить конфигурацию: %v", err)
-	}
+	cfg := config.LoadConfig()
 
 	// Инициализируем логгеры
 	utils.InitLogger()
 
 	// Инициализируем базу данных
-	dbInstance := db.InitDB(cfg)
+	dbInstance, err := db.InitDB(cfg)
+	if err != nil {
+		log.Fatalf("Ошибка при подключении к базе данных: %v", err)
+	}
 
 	// Создаем SongHandler
 	songHandler := handlers.NewSongHandler(dbInstance)
 
 	// Регистрируем маршруты
-	routes.RegisterRoutes(r, songHandler) // Ensure routes.RegisterRoutes accepts *gin.Engine
+	routes.RegisterRoutes(router, songHandler)
 
 	// Устанавливаем порт из переменной окружения или по умолчанию 8080
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8080" // значение по умолчанию
+		port = "8080"
 	}
 
 	// Запуск сервера
 	log.Printf("Сервер запущен на порту %s", port)
-	log.Fatal(r.Run(":" + port))
+	log.Fatal(http.ListenAndServe(":"+port, router))
 }

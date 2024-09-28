@@ -1,18 +1,18 @@
 package db
 
 import (
-	"database/sql"
 	"em-test/config"
 	"fmt"
 	"log"
 	"time"
 
-	_ "github.com/lib/pq" // Заменяем импорт на анонимный, если драйвер используется только для инициализации
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 // Database структура для работы с БД
 type Database struct {
-	DB *sql.DB
+	DB *gorm.DB
 }
 
 // InitDB инициализирует подключение к базе данных с использованием конфигурации
@@ -20,16 +20,21 @@ func InitDB(cfg *config.Config) (*Database, error) {
 	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
 		cfg.DBHost, cfg.DBPort, cfg.DBUser, cfg.DBPassword, cfg.DBName)
 
-	db, err := sql.Open("postgres", dsn)
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		return nil, fmt.Errorf("ошибка при подключении к базе данных: %v", err)
 	}
 
-	db.SetConnMaxLifetime(5 * time.Minute)
-	db.SetMaxOpenConns(20)
-	db.SetMaxIdleConns(10)
+	sqlDB, err := db.DB()
+	if err != nil {
+		return nil, fmt.Errorf("ошибка получения SQL DB: %v", err)
+	}
 
-	if err := db.Ping(); err != nil {
+	sqlDB.SetConnMaxLifetime(5 * time.Minute)
+	sqlDB.SetMaxOpenConns(20)
+	sqlDB.SetMaxIdleConns(10)
+
+	if err := sqlDB.Ping(); err != nil {
 		return nil, fmt.Errorf("ошибка при проверке связи с базой данных: %v", err)
 	}
 
