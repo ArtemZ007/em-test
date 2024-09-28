@@ -23,6 +23,12 @@ func NewSongHandler(db *db.Database) *SongHandler {
 	return &SongHandler{db: db}
 }
 
+// Определяем константы для часто используемых значений
+const (
+	contentType     = "Content-Type"
+	applicationJSON = "application/json"
+)
+
 // GetSongs godoc
 // @Summary Получение списка песен
 // @Description Возвращает список песен с поддержкой фильтрации и пагинации
@@ -36,11 +42,6 @@ func NewSongHandler(db *db.Database) *SongHandler {
 // @Failure 500 {string} string "Ошибка на сервере"
 // @Router /songs [get]
 func (h *SongHandler) GetSongs(w http.ResponseWriter, r *http.Request) {
-	const (
-		contentType     = "Content-Type"
-		applicationJSON = "application/json"
-	)
-
 	ctx := r.Context()
 	var songs []models.Song
 	filters := r.URL.Query()
@@ -115,7 +116,7 @@ func (h *SongHandler) AddSong(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set(contentType, applicationJSON)
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(song)
 }
@@ -139,7 +140,7 @@ func (h *SongHandler) GetSongHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set(contentType, applicationJSON)
 	json.NewEncoder(w).Encode(song)
 }
 
@@ -170,7 +171,7 @@ func (h *SongHandler) UpdateSongHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set(contentType, applicationJSON)
 	json.NewEncoder(w).Encode(song)
 }
 
