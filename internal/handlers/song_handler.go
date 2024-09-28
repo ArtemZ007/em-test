@@ -8,7 +8,6 @@ import (
 	"strconv"
 
 	"em-test/internal/db"
-	_ "em-test/internal/db"
 	"em-test/internal/models"
 
 	"github.com/gorilla/mux"
