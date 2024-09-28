@@ -1,0 +1,176 @@
+basePath: /
+definitions:
+  models.Song:
+    properties:
+      group:
+        description: Группа, исполняющая песню
+        type: string
+      id:
+        description: Уникальный идентификатор песни
+        type: integer
+      link:
+        description: Ссылка на песню
+        type: string
+      releaseDate:
+        description: Дата выпуска песни
+        type: string
+      song:
+        description: Название песни
+        type: string
+      text:
+        description: Текст песни
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: This is a music library service.
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Music Library API
+  version: "1.0"
+paths:
+  /songs:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает список песен с поддержкой фильтрации и пагинации
+      parameters:
+      - description: Название группы
+        in: query
+        name: group
+        type: string
+      - description: Лимит записей на страницу
+        in: query
+        name: limit
+        type: integer
+      - description: Смещение для пагинации
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Song'
+            type: array
+        "500":
+          description: Ошибка на сервере
+          schema:
+            type: string
+      summary: Получение списка песен
+      tags:
+      - Песни
+    post:
+      consumes:
+      - application/json
+      description: Создает новую песню и сохраняет в базе данных
+      parameters:
+      - description: Песня
+        in: body
+        name: song
+        required: true
+        schema:
+          $ref: '#/definitions/models.Song'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.Song'
+        "400":
+          description: Неверный запрос
+          schema:
+            type: string
+        "500":
+          description: Ошибка на сервере
+          schema:
+            type: string
+      summary: Добавление новой песни
+      tags:
+      - Песни
+  /songs/{id}:
+    delete:
+      description: Удаляет песню из базы данных по её ID
+      parameters:
+      - description: ID песни
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: Песня удалена
+        "500":
+          description: Ошибка на сервере
+          schema:
+            type: string
+      summary: Удаление песни по ID
+      tags:
+      - Песни
+    get:
+      description: Возвращает информацию о песне по её ID
+      parameters:
+      - description: ID песни
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Song'
+        "404":
+          description: Песня не найдена
+          schema:
+            type: string
+      summary: Получение песни по ID
+      tags:
+      - Песни
+    put:
+      consumes:
+      - application/json
+      description: Обновляет информацию о песне по её ID
+      parameters:
+      - description: ID песни
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Данные для обновления
+        in: body
+        name: song
+        required: true
+        schema:
+          $ref: '#/definitions/models.Song'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Song'
+        "400":
+          description: Неверный формат запроса
+          schema:
+            type: string
+        "500":
+          description: Ошибка на сервере
+          schema:
+            type: string
+      summary: Обновление песни по ID
+      tags:
+      - Песни
+swagger: "2.0"

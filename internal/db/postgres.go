@@ -4,32 +4,35 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/ArtemZ007/em-test/config"
 	_ "github.com/lib/pq"
 )
 
-// DB представляет собой глобальную переменную для подключения к базе данных
-var DB *sql.DB
+// Database структура для работы с БД
+type Database struct {
+	DB *sql.DB
+}
 
 // InitDB инициализирует подключение к базе данных с использованием конфигурации
-func InitDB(config *config.Config) {
-	var err error
-	// Формируем строку подключения (DSN) на основе конфигурации
+func InitDB(cfg *config.Config) (*Database, error) {
 	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-		config.DBHost, config.DBPort, config.DBUser, config.DBPassword, config.DBName)
+		cfg.DBHost, cfg.DBPort, cfg.DBUser, cfg.DBPassword, cfg.DBName)
 
-	// Открываем подключение к базе данных
-	DB, err = sql.Open("postgres", dsn)
+	db, err := sql.Open("postgres", dsn)
 	if err != nil {
-		log.Fatalf("Не удалось подключиться к базе данных: %v", err)
+		return nil, fmt.Errorf("ошибка при подключении к базе данных: %v", err)
 	}
 
-	// Проверяем подключение к базе данных
-	err = DB.Ping()
-	if err != nil {
-		log.Fatalf("Не удалось выполнить ping к базе данных: %v", err)
+	db.SetConnMaxLifetime(5 * time.Minute)
+	db.SetMaxOpenConns(20)
+	db.SetMaxIdleConns(10)
+
+	if err := db.Ping(); err != nil {
+		return nil, fmt.Errorf("ошибка при проверке связи с базой данных: %v", err)
 	}
 
-	fmt.Println("Успешное подключение к базе данных!")
+	log.Println("Подключение к базе данных успешно установлено")
+	return &Database{DB: db}, nil
 }

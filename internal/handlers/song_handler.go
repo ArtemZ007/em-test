@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/ArtemZ007/em-test/internal/db"
+	"github.com/ArtemZ007/em-test/models"
 	"github.com/gorilla/mux"
 )
 
@@ -20,7 +22,18 @@ func NewSongHandler(db *db.Database) *SongHandler {
 	return &SongHandler{db: db}
 }
 
-// GetSongs обрабатывает запрос на получение списка песен с фильтрацией и пагинацией
+// GetSongs godoc
+// @Summary Получение списка песен
+// @Description Возвращает список песен с поддержкой фильтрации и пагинации
+// @Tags Песни
+// @Accept  json
+// @Produce  json
+// @Param group query string false "Название группы"
+// @Param limit query int false "Лимит записей на страницу"
+// @Param offset query int false "Смещение для пагинации"
+// @Success 200 {array} models.Song
+// @Failure 500 {string} string "Ошибка на сервере"
+// @Router /songs [get]
 func (h *SongHandler) GetSongs(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var songs []models.Song
@@ -35,16 +48,31 @@ func (h *SongHandler) GetSongs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	group := filters.Get("group")
-	if err := h.db.WithContext(ctx).Where("group = ?", group).Limit(limit).Offset(offset).Find(&songs).Error; err != nil {
+	query := h.db.WithContext(ctx).Limit(limit).Offset(offset)
+	if group != "" {
+		query = query.Where("group = ?", group)
+	}
+	if err := query.Find(&songs).Error; err != nil {
 		log.Printf("Не удалось получить песни: %v", err)
-		http.Error(w, "Не удалось получить песни", http.StatusInternalServerError)
+		http.Error(w, "Ошибка при получении песен", http.StatusInternalServerError)
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(songs)
 }
 
-// AddSong обрабатывает запрос на добавление новой песни
+// AddSong godoc
+// @Summary Добавление новой песни
+// @Description Создает новую песню и сохраняет в базе данных
+// @Tags Песни
+// @Accept  json
+// @Produce  json
+// @Param song body models.Song true "Песня"
+// @Success 201 {object} models.Song
+// @Failure 400 {string} string "Неверный запрос"
+// @Failure 500 {string} string "Ошибка на сервере"
+// @Router /songs [post]
 func (h *SongHandler) AddSong(w http.ResponseWriter, r *http.Request) {
 	const invalidRequestFormat = "Неверный формат запроса"
 	var song models.Song
@@ -53,10 +81,11 @@ func (h *SongHandler) AddSong(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Внешний запрос для получения данных о песне
 	apiURL := fmt.Sprintf("http://external-api.com/info?group=%s&song=%s", song.Group, song.Song)
 	resp, err := http.Get(apiURL)
-	if err != nil {
-		http.Error(w, "Не удалось получить информацию о песне", http.StatusInternalServerError)
+	if err != nil || resp.StatusCode != http.StatusOK {
+		http.Error(w, "Ошибка при получении данных о песне", http.StatusInternalServerError)
 		return
 	}
 	defer resp.Body.Close()
@@ -76,53 +105,46 @@ func (h *SongHandler) AddSong(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(song)
 }
 
-// CreateSongHandler обрабатывает запрос на создание новой песни
-func (h *SongHandler) CreateSongHandler(w http.ResponseWriter, r *http.Request) {
-	var song models.Song
-	if err := json.NewDecoder(r.Body).Decode(&song); err != nil {
-		http.Error(w, "Неверный формат запроса", http.StatusBadRequest)
-		return
-	}
-
-	if err := h.db.Create(&song).Error; err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(song)
-}
-
-// GetSongsHandler обрабатывает запрос на получение всех песен
-func (h *SongHandler) GetSongsHandler(w http.ResponseWriter, r *http.Request) {
-	songs, err := h.db.GetAllSongs()
-	if err != nil {
-		http.Error(w, "Не удалось получить песни", http.StatusInternalServerError)
-		return
-	}
-
-	json.NewEncoder(w).Encode(songs)
-}
-
-// GetSongHandler обрабатывает запрос на получение песни по ID
+// GetSongHandler godoc
+// @Summary Получение песни по ID
+// @Description Возвращает информацию о песне по её ID
+// @Tags Песни
+// @Produce  json
+// @Param id path string true "ID песни"
+// @Success 200 {object} models.Song
+// @Failure 404 {string} string "Песня не найдена"
+// @Router /songs/{id} [get]
 func (h *SongHandler) GetSongHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
 
-	song, err := h.db.GetSongByID(id)
-	if err != nil {
+	var song models.Song
+	if err := h.db.First(&song, id).Error; err != nil {
 		http.Error(w, "Песня не найдена", http.StatusNotFound)
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(song)
 }
 
-// UpdateSongHandler обрабатывает запрос на обновление песни по ID
+// UpdateSongHandler godoc
+// @Summary Обновление песни по ID
+// @Description Обновляет информацию о песне по её ID
+// @Tags Песни
+// @Accept  json
+// @Produce  json
+// @Param id path string true "ID песни"
+// @Param song body models.Song true "Данные для обновления"
+// @Success 200 {object} models.Song
+// @Failure 400 {string} string "Неверный формат запроса"
+// @Failure 500 {string} string "Ошибка на сервере"
+// @Router /songs/{id} [put]
 func (h *SongHandler) UpdateSongHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
@@ -133,21 +155,29 @@ func (h *SongHandler) UpdateSongHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	if err := h.db.UpdateSong(id, &song).Error; err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	if err := h.db.Model(&models.Song{}).Where("id = ?", id).Updates(song).Error; err != nil {
+		http.Error(w, "Ошибка при обновлении песни", http.StatusInternalServerError)
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(song)
 }
 
-// DeleteSongHandler обрабатывает запрос на удаление песни по ID
+// DeleteSongHandler godoc
+// @Summary Удаление песни по ID
+// @Description Удаляет песню из базы данных по её ID
+// @Tags Песни
+// @Param id path string true "ID песни"
+// @Success 204 "Песня удалена"
+// @Failure 500 {string} string "Ошибка на сервере"
+// @Router /songs/{id} [delete]
 func (h *SongHandler) DeleteSongHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
 
-	if err := h.db.DeleteSong(id).Error; err != nil {
-		http.Error(w, "Не удалось удалить песню", http.StatusInternalServerError)
+	if err := h.db.Delete(&models.Song{}, id).Error; err != nil {
+		http.Error(w, "Ошибка при удалении песни", http.StatusInternalServerError)
 		return
 	}
 
