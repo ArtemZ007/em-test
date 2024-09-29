@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"em-test/config"            // Пакет для работы с конфигурацией
 	"em-test/internal/db"       // Пакет для работы с базой данных
 	"em-test/internal/handlers" // Пакет для обработки запросов
@@ -9,6 +10,8 @@ import (
 	"log"                       // Пакет для логирования
 	"net/http"                  // Пакет для работы с HTTP сервером
 	"os"                        // Пакет для работы с операционной системой
+	"os/signal"                 // Для обработки системных сигналов (graceful shutdown)
+	"time"                      // Для таймаута при завершении сервера
 
 	"github.com/gorilla/mux"                     // Пакет для маршрутизации HTTP запросов
 	httpSwagger "github.com/swaggo/http-swagger" // Пакет для интеграции Swagger UI
@@ -33,8 +36,9 @@ func main() {
 	router := mux.NewRouter()
 
 	// Подключаем Swagger UI по адресу /swagger/*
+	// Здесь мы указываем путь к локальному файлу swagger.json или swagger.yaml, который находится в папке docs
 	router.PathPrefix("/swagger/").Handler(httpSwagger.Handler(
-		httpSwagger.URL("http://localhost:8080/swagger/doc.json"), // Укажи правильный URL для Swagger документации
+		httpSwagger.URL("http://localhost:8080/docs/swagger.json"), // Укажи правильный URL для Swagger документации
 	))
 
 	// Загружаем конфигурацию из файла .env
@@ -61,7 +65,35 @@ func main() {
 		port = "8080"
 	}
 
-	// Запуск сервера
-	log.Printf("Сервер запущен на порту %s", port)
-	log.Fatal(http.ListenAndServe(":"+port, router))
+	// Запуск сервера с поддержкой graceful shutdown
+	srv := &http.Server{
+		Handler: router,
+		Addr:    ":" + port,
+	}
+
+	// Канал для системных сигналов (graceful shutdown)
+	stopChan := make(chan os.Signal, 1)
+	signal.Notify(stopChan, os.Interrupt)
+
+	// Запуск сервера в отдельной горутине
+	go func() {
+		log.Printf("Сервер запущен на порту %s", port)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("Ошибка при запуске сервера: %v", err)
+		}
+	}()
+
+	// Ожидание сигнала для завершения
+	<-stopChan
+	log.Println("Получен сигнал завершения, останавливаем сервер...")
+
+	// Контекст с таймаутом для корректного завершения работы сервера
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Fatalf("Ошибка при завершении работы сервера: %v", err)
+	}
+
+	log.Println("Сервер завершил работу корректно.")
 }

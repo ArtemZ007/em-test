@@ -3,7 +3,6 @@ package docs
 
 import "github.com/swaggo/swag"
 
-// docTemplate содержит шаблон документации Swagger в формате JSON
 const docTemplate = `{
     "schemes": {{ marshal .Schemes }},
     "swagger": "2.0",
@@ -268,7 +267,7 @@ const docTemplate = `{
     }
 }`
 
-// SwaggerInfo содержит экспортированную информацию Swagger, чтобы клиенты могли её изменять
+// SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
 	Host:             "localhost:8080",
@@ -282,7 +281,6 @@ var SwaggerInfo = &swag.Spec{
 	RightDelim:       "}}",
 }
 
-// init регистрирует информацию Swagger при инициализации пакета
 func init() {
 	swag.Register(SwaggerInfo.InstanceName(), SwaggerInfo)
 }
